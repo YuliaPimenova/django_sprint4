@@ -36,7 +36,7 @@ urlpatterns = [
             success_url=reverse_lazy('pages:homepage'),
         ),
         name='registration',)
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) 
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:
     import debug_toolbar
