@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Count
 
 from .models import Category, Comment, Location, Post
 
@@ -14,12 +15,22 @@ class CategoryAdmin(admin.ModelAdmin):
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'author', 'text', 'category',
-                    'pub_date', 'location', 'is_published', 'created_at')
+                    'pub_date', 'location', 'is_published', 'created_at',
+                    'comment_count')
     list_display_links = ('title', )
     list_editable = ('category', 'is_published')
     search_fields = ('title', 'text')
     list_filter = ('is_published', 'category')
     empty_value_display = 'Не задано'
+
+    def get_queryset(self, request):
+        queryset = super(PostAdmin, self).get_queryset(request)
+        return queryset.annotate(
+            comment_count=Count('comments'))
+
+    @admin.display(description='Количество комментариев')
+    def comment_count(self, obj):
+        return obj.comment_count
 
 
 class PostInline(admin.StackedInline):

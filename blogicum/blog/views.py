@@ -2,7 +2,7 @@ from datetime import datetime
 import pytz
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
@@ -11,7 +11,8 @@ from django.views.generic import (
 from django.urls import reverse
 
 from .forms import CommentForm, PostForm, UserUpdateForm
-from .models import Category, Comment, Post
+from .mixins import CommentMixin, OnlyAuthorMixin, PostMixin
+from .models import Category, Post
 
 PAGINATE_COUNT = 10
 
@@ -24,35 +25,6 @@ def post_filter(query):
         is_published__exact=True,
         category__is_published=True
     ).order_by('-pub_date')
-
-
-class OnlyAuthorMixin(UserPassesTestMixin):
-
-    def test_func(self):
-        object = self.get_object()
-        return object.author == self.request.user
-
-
-class PostMixin:
-    model = Post
-    form_class = PostForm
-    template_name = 'blog/create.html'
-
-    def get_success_url(self):
-        return reverse('blog:profile',
-                       kwargs={'username': self.request.user.username})
-
-
-class CommentMixin:
-    model = Comment
-    form_class = CommentForm
-
-    def dispatch(self, request, *args, **kwargs):
-        self.post_card = get_object_or_404(Post, pk=kwargs['post_id'])
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_success_url(self):
-        return reverse('blog:post_detail', kwargs={'pk': self.post_card.pk})
 
 
 class PostListView(ListView):
@@ -149,10 +121,8 @@ class ProfileListView(ListView):
             return self.profile.posts.all().annotate(
                 comment_count=Count('comments')
             ).order_by('-pub_date')
-        else:
-            return post_filter(self.profile.posts.all()).annotate(
-                comment_count=Count('comments')
-            )
+        return post_filter(self.profile.posts.all()).annotate(
+            comment_count=Count('comments'))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
